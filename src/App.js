@@ -395,7 +395,7 @@ export default function App() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 md:p-8 text-center relative overflow-hidden">
-          <h2 className="text-2xl font-black text-slate-800 mb-2">💰 {currentWeek}주차 정산하기</h2>
+          <h2 className="text-2xl font-black text-slate-800 mb-2">💰 {currentWeek}주차 정산하기 <span className="text-base font-normal text-slate-400">({getWeekDate(currentWeek)})</span></h2>
           <p className="text-slate-500 mb-6">이번 주 총 예산 <strong>{currentAvailableMoney.toLocaleString()}원</strong> 중 얼마를 사용했나요?</p>
           
           <div className="max-w-md mx-auto flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
