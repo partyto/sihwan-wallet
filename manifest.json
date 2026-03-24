@@ -1,9 +1,0 @@
-{
-  "short_name": "시환 용돈",
-  "name": "시환이 용돈 매니저",
-  "icons": [],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
-}
