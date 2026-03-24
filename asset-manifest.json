@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/sihwan-wallet/static/css/main.0e000306.css",
+    "main.js": "/sihwan-wallet/static/js/main.428db97f.js",
+    "index.html": "/sihwan-wallet/index.html",
+    "main.0e000306.css.map": "/sihwan-wallet/static/css/main.0e000306.css.map",
+    "main.428db97f.js.map": "/sihwan-wallet/static/js/main.428db97f.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.0e000306.css",
+    "static/js/main.428db97f.js"
+  ]
+}
