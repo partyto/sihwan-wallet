@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/sihwan-wallet/static/css/main.0e000306.css",
-    "main.js": "/sihwan-wallet/static/js/main.428db97f.js",
+    "main.js": "/sihwan-wallet/static/js/main.b4900da3.js",
     "index.html": "/sihwan-wallet/index.html",
     "main.0e000306.css.map": "/sihwan-wallet/static/css/main.0e000306.css.map",
-    "main.428db97f.js.map": "/sihwan-wallet/static/js/main.428db97f.js.map"
+    "main.b4900da3.js.map": "/sihwan-wallet/static/js/main.b4900da3.js.map"
   },
   "entrypoints": [
     "static/css/main.0e000306.css",
-    "static/js/main.428db97f.js"
+    "static/js/main.b4900da3.js"
   ]
 }
