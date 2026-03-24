@@ -4,11 +4,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 
-// ★ HTML 편집 없이 Tailwind CSS(디자인 마법) 자동 적용하기
-const tailwindScript = document.createElement("script");
-tailwindScript.src = "https://cdn.tailwindcss.com";
-document.head.appendChild(tailwindScript);
-
 // ★[중요] 여기에 1단계에서 복사해둔 진짜 firebaseConfig를 덮어쓰세요! ★
 const firebaseConfig = {
   apiKey: "AIzaSyAx5yJq-JKDhpqV3Wrwbyszwz1ELUOSpas",
@@ -238,8 +233,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md text-center">
-          <div className="bg-blue-100 p-4 rounded-full inline-block mb-6">
-            <Wallet size={48} className="text-blue-600" />
+          <div className="inline-block mb-6">
+            <img src={`${process.env.PUBLIC_URL}/IMG_1756_nobg.PNG`} alt="캐릭터" className="w-36 h-36 rounded-full object-cover shadow-lg" style={{objectPosition: '85% center'}} />
           </div>
           <h1 className="text-2xl font-black text-slate-800 mb-2">시환이의 용돈 매니저</h1>
           <p className="text-slate-500 mb-8">가족 계정으로 로그인해주세요 👨‍👩‍👦</p>
