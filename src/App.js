@@ -358,9 +358,6 @@ export default function App() {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end">
-            <button onClick={handleReset} className="flex items-center space-x-2 text-slate-400 hover:text-red-500 transition-colors text-sm font-medium bg-slate-100 px-3 py-2 rounded-lg">
-              <RotateCcw size={16} /> <span className="hidden sm:inline">전체 초기화</span>
-            </button>
             <button onClick={handleLogout} className="flex items-center space-x-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium bg-slate-100 px-3 py-2 rounded-lg">
               <LogOut size={16} /> <span className="hidden sm:inline">로그아웃</span>
             </button>
