@@ -482,8 +482,8 @@ export default function App() {
                       <td className="px-6 py-4 font-bold text-slate-700">
                         <span className="inline-flex items-center space-x-1 bg-slate-100 text-slate-600 px-2 py-1 rounded">
                           <PlusCircle size={14} /> <span>{record.week}주차</span>
+                          <span className="text-xs text-slate-400 font-normal">({getWeekDate(record.week)})</span>
                         </span>
-                        <div className="text-xs text-slate-400 font-normal mt-1 ml-1">{getWeekDate(record.week)}</div>
                       </td>
                       <td className="px-6 py-4 text-right text-slate-700 font-bold">
                         {record.availableMoney ? record.availableMoney.toLocaleString() : ALLOWANCE_BASE.toLocaleString()}원
