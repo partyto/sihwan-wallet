@@ -35,6 +35,24 @@ const getWeekDate = (week) => {
   return `${d.getMonth() + 1}/${d.getDate()}`;
 };
 
+// 연속 저금 주수 계산 (historyAsc: 오름차순 정렬된 배열, upToIndex: 포함할 마지막 인덱스)
+const getConsecutiveSavingCount = (historyAsc, upToIndex) => {
+  let count = 0;
+  for (let i = upToIndex; i >= 0; i--) {
+    if (historyAsc[i].saving > 0) {
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
+};
+
+// 보너스 여부 판단: 연속 저금 수가 3의 배수이고 saving > 0
+const shouldApplyBonus = (consecutiveCount) => {
+  return consecutiveCount > 0 && consecutiveCount % 3 === 0;
+};
+
 export default function App() {
   const ALLOWANCE_BASE = 10000;
   
@@ -118,9 +136,21 @@ export default function App() {
 
     const remaining = currentAvailableMoney - spent;
     const exactHalf = remaining / 2;
-    const roundedCarryOver = Math.ceil(exactHalf / 100) * 100; 
-    const saving = exactHalf * 2; 
+    const roundedCarryOver = Math.ceil(exactHalf / 100) * 100;
+    let saving = exactHalf * 2;
     const nextWeekAvailable = ALLOWANCE_BASE + roundedCarryOver;
+
+    // 연속 저금 보너스 계산
+    const historyAsc = [...history].sort((a, b) => a.week - b.week);
+    let consecutiveCount = saving > 0 ? 1 : 0; // 현재 주차 포함
+    if (saving > 0) {
+      for (let i = historyAsc.length - 1; i >= 0; i--) {
+        if (historyAsc[i].saving > 0) consecutiveCount++;
+        else break;
+      }
+    }
+    const bonus = shouldApplyBonus(consecutiveCount) ? saving : 0;
+    saving = saving + bonus;
 
     try {
       const historyRef = collection(db, 'artifacts', appId, 'users', 'family_data', 'allowance_history');
@@ -131,6 +161,7 @@ export default function App() {
         remaining: remaining,
         halfRemaining: roundedCarryOver,
         saving: saving,
+        bonus: bonus,
         nextWeekAvailable: nextWeekAvailable,
         createdAt: new Date().toISOString(),
         createdBy: user.email // 누가 기록했는지 이메일 저장
@@ -202,8 +233,13 @@ export default function App() {
         const remaining = currentAvailable - spentToUse;
         const exactHalf = remaining / 2;
         const roundedCarryOver = Math.ceil(exactHalf / 100) * 100;
-        const saving = exactHalf * 2; 
+        let saving = exactHalf * 2;
         const nextWeekAvailable = ALLOWANCE_BASE + roundedCarryOver;
+
+        // 연속 저금 보너스 재계산 (이전 주차들의 saving을 이미 업데이트한 상태 기준)
+        const consecutiveCount = saving > 0 ? getConsecutiveSavingCount(historyAsc, i) : 0;
+        const bonus = shouldApplyBonus(consecutiveCount) ? saving : 0;
+        saving = saving + bonus;
 
         await updateDoc(doc(db, 'artifacts', appId, 'users', 'family_data', 'allowance_history', rec.id), {
           availableMoney: currentAvailable,
@@ -211,8 +247,12 @@ export default function App() {
           remaining: remaining,
           halfRemaining: roundedCarryOver,
           saving: saving,
+          bonus: bonus,
           nextWeekAvailable: nextWeekAvailable
         });
+
+        // 로컬 배열도 업데이트 (이후 주차의 연속 계산에 필요)
+        historyAsc[i] = { ...historyAsc[i], saving, bonus, spent: spentToUse };
         currentAvailable = nextWeekAvailable;
       }
       setEditState(null); 
@@ -221,14 +261,30 @@ export default function App() {
     }
   };
 
+  // 현재 연속 저금 streak 계산 (history는 내림차순)
+  const historyAscForStreak = [...history].sort((a, b) => a.week - b.week);
+  let currentStreak = 0;
+  for (let i = historyAscForStreak.length - 1; i >= 0; i--) {
+    if (historyAscForStreak[i].saving > 0) currentStreak++;
+    else break;
+  }
+
   const inputSpent = parseInt(spentInput);
   const isValidInput = !isNaN(inputSpent) && inputSpent >= 0 && inputSpent <= currentAvailableMoney;
-  let visRemaining = 0, visExactHalf = 0, visRoundedCarryOver = 0, visSaving = 0;
+  let visRemaining = 0, visExactHalf = 0, visRoundedCarryOver = 0, visSaving = 0, visBonus = 0;
+  let visNextStreak = currentStreak;
   if (isValidInput) {
     visRemaining = currentAvailableMoney - inputSpent;
     visExactHalf = visRemaining / 2;
     visRoundedCarryOver = Math.ceil(visExactHalf / 100) * 100;
     visSaving = visExactHalf * 2;
+
+    // 프리뷰 보너스 계산
+    visNextStreak = visSaving > 0 ? currentStreak + 1 : 0;
+    if (shouldApplyBonus(visNextStreak) && visSaving > 0) {
+      visBonus = visSaving;
+      visSaving = visSaving + visBonus;
+    }
   }
 
   // --- 로그인 화면 ---
@@ -354,7 +410,10 @@ export default function App() {
             <div className="p-3 bg-blue-100 text-blue-600 rounded-xl"><Wallet size={32} /></div>
             <div>
               <h1 className="text-2xl font-bold text-slate-800">👑 시환이의 용돈 매니저</h1>
-              <p className="text-slate-500">마법처럼 예산이 불어나는 {currentWeek}주차 도전!</p>
+              <p className="text-slate-500">
+                마법처럼 예산이 불어나는 {currentWeek}주차 도전!
+                {currentStreak > 0 && <span className="ml-2 inline-flex items-center bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full text-xs font-bold">🔥 {currentStreak}주 연속 저금!</span>}
+              </p>
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end">
@@ -410,6 +469,19 @@ export default function App() {
           
           {isValidInput && (
             <div className="mt-8 pt-8 border-t border-dashed border-slate-200">
+              {visSaving > 0 && (
+                <div className="mb-4">
+                  {visBonus > 0 ? (
+                    <div className="inline-block bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 px-4 py-2 rounded-full font-bold border border-orange-200 shadow-sm animate-pulse">
+                      🔥 {visNextStreak}주 연속 저금 달성! 저금통 ×2 보너스 발동!
+                    </div>
+                  ) : visNextStreak > 0 && visNextStreak % 3 !== 0 ? (
+                    <div className="inline-block bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-bold border border-blue-200 shadow-sm">
+                      🔥 {visNextStreak}주 연속 저금 중! {3 - (visNextStreak % 3)}주 더 저금하면 ×2 보너스!
+                    </div>
+                  ) : null}
+                </div>
+              )}
               <div className="inline-block bg-slate-100 text-slate-600 px-4 py-2 rounded-full font-bold mb-6 border border-slate-200 shadow-sm">
                 남은 돈: {visRemaining.toLocaleString()}원의 절반을 나눕니다! <span className="text-emerald-500">(이월금 100원 단위 올림 혜택 🎁)</span> 👇
               </div>
@@ -432,13 +504,23 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 p-5 rounded-2xl flex flex-col justify-center items-center relative overflow-hidden">
+                <div className={`${visBonus > 0 ? 'bg-gradient-to-br from-amber-50 to-orange-100 border-orange-300' : 'bg-amber-50 border-amber-200'} border p-5 rounded-2xl flex flex-col justify-center items-center relative overflow-hidden`}>
                   <div className="absolute -right-4 -bottom-4 opacity-10"><Zap size={100} /></div>
-                  <span className="text-amber-600 font-bold mb-2 flex items-center gap-1">🐷 1년 저금통으로! (절반의 2배)</span>
+                  <span className="text-amber-600 font-bold mb-2 flex items-center gap-1">
+                    🐷 1년 저금통으로! (절반의 2배)
+                    {visBonus > 0 && <span className="ml-1 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">×2 보너스!</span>}
+                  </span>
                   <div className="flex items-center gap-3">
                     <span className="text-lg text-amber-700 line-through decoration-amber-400 decoration-2">{visExactHalf.toLocaleString()}원</span>
                     <ArrowRight className="text-amber-400" size={20} />
-                    <span className="text-3xl font-black text-amber-600">+{visSaving.toLocaleString()}원</span>
+                    {visBonus > 0 ? (
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm text-amber-500 line-through">{(visSaving - visBonus).toLocaleString()}원</span>
+                        <span className="text-3xl font-black text-orange-600">+{visSaving.toLocaleString()}원 🔥</span>
+                      </div>
+                    ) : (
+                      <span className="text-3xl font-black text-amber-600">+{visSaving.toLocaleString()}원</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -487,7 +569,16 @@ export default function App() {
                       </td>
                       <td className="px-6 py-4 text-right text-red-400 font-medium">-{record.spent.toLocaleString()}원</td>
                       <td className="px-6 py-4 text-right text-teal-600 font-bold bg-teal-50/30">{record.halfRemaining.toLocaleString()}원</td>
-                      <td className="px-6 py-4 text-right text-amber-500 font-black text-lg bg-amber-50/30">+{record.saving.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right font-black text-lg bg-amber-50/30">
+                        {(record.bonus || 0) > 0 ? (
+                          <span className="text-orange-600">
+                            +{record.saving.toLocaleString()}
+                            <span className="ml-1 text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold align-middle">🔥×2</span>
+                          </span>
+                        ) : (
+                          <span className="text-amber-500">+{record.saving.toLocaleString()}</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4 text-center">
                         <button onClick={() => handleEditClick(record)} className="text-slate-400 hover:text-blue-600 transition-colors p-2 rounded-full hover:bg-blue-50">
                           <Edit2 size={18} />
