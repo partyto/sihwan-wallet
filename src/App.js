@@ -176,7 +176,14 @@ export default function App() {
         else break;
       }
     }
-    const bonus = shouldApplyBonus(consecutiveCount) ? saving : 0;
+    // 보너스 = 직전 2주 saving(보너스 제외) + 현재 주차 saving 합산
+    // → 1~3주차 합산의 2배 효과 (이미 적립된 1~2주분이 한 번 더 들어옴)
+    let bonus = 0;
+    if (shouldApplyBonus(consecutiveCount) && saving > 0) {
+      const prev2 = historyAsc.slice(-2); // 직전 2주
+      const prevSavingSum = prev2.reduce((s, r) => s + (r.saving - (r.bonus || 0)), 0);
+      bonus = prevSavingSum + saving; // 1~3주차 순수 saving 합산
+    }
     saving = saving + bonus;
 
     try {
@@ -270,7 +277,12 @@ export default function App() {
 
         // 연속 저금 보너스 재계산 (이전 주차들의 saving을 이미 업데이트한 상태 기준)
         const consecutiveCount = saving > 0 ? getConsecutiveSavingCount(historyAsc, i) : 0;
-        const bonus = shouldApplyBonus(consecutiveCount) ? saving : 0;
+        let bonus = 0;
+        if (shouldApplyBonus(consecutiveCount) && saving > 0) {
+          const prev2 = historyAsc.slice(Math.max(0, i - 2), i);
+          const prevSavingSum = prev2.reduce((s, r) => s + (r.saving - (r.bonus || 0)), 0);
+          bonus = prevSavingSum + saving;
+        }
         saving = saving + bonus;
 
         await updateDoc(doc(db, 'artifacts', appId, 'users', 'family_data', 'allowance_history', rec.id), {
@@ -313,10 +325,12 @@ export default function App() {
     visRoundedCarryOver = Math.ceil(visExactHalf / 100) * 100;
     visSaving = visExactHalf * 2;
 
-    // 프리뷰 보너스 계산
+    // 프리뷰 보너스 계산 (1~3주차 합산의 2배)
     visNextStreak = visSaving > 0 ? currentStreak + 1 : 0;
     if (shouldApplyBonus(visNextStreak) && visSaving > 0) {
-      visBonus = visSaving;
+      const prev2 = historyAscForStreak.slice(-2);
+      const prevSavingSum = prev2.reduce((s, r) => s + (r.saving - (r.bonus || 0)), 0);
+      visBonus = prevSavingSum + visSaving;
       visSaving = visSaving + visBonus;
     }
   }
