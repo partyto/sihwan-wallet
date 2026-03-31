@@ -53,6 +53,24 @@ const shouldApplyBonus = (consecutiveCount) => {
   return consecutiveCount > 0 && consecutiveCount % 3 === 0;
 };
 
+// 히스토리 테이블용 streak 그룹 정보 계산
+// 반환: { [recordId]: { position: 1|2|3 (0=연속아님), consecutive: N } }
+const computeStreakInfo = (historyAsc) => {
+  const result = {};
+  let consecutive = 0;
+  historyAsc.forEach((record) => {
+    if ((record.saving || 0) > 0) {
+      consecutive++;
+      const position = ((consecutive - 1) % 3) + 1; // 1, 2, 3 반복
+      result[record.id] = { position, consecutive };
+    } else {
+      consecutive = 0;
+      result[record.id] = { position: 0, consecutive: 0 };
+    }
+  });
+  return result;
+};
+
 export default function App() {
   const ALLOWANCE_BASE = 10000;
   
@@ -62,9 +80,10 @@ export default function App() {
   const[history, setHistory] = useState([]);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const [alertData, setAlertData] = useState(null); 
-  const[confirmData, setConfirmData] = useState(null); 
-  const [editState, setEditState] = useState(null); 
+  const [alertData, setAlertData] = useState(null);
+  const[confirmData, setConfirmData] = useState(null);
+  const [editState, setEditState] = useState(null);
+  const [celebrationData, setCelebrationData] = useState(null);
 
   // 구글 로그인 처리 및 이메일 검사
   useEffect(() => {
@@ -167,6 +186,11 @@ export default function App() {
         createdBy: user.email // 누가 기록했는지 이메일 저장
       });
       setSpentInput('');
+      if (bonus > 0) {
+        setCelebrationData({ type: 'bonus', bonus, saving, streakCount: consecutiveCount });
+      } else if (saving === 0) {
+        setCelebrationData({ type: 'broke' });
+      }
     } catch (error) {
       setAlertData("정산 기록을 저장하는 중 오류가 발생했습니다.");
     }
@@ -263,6 +287,8 @@ export default function App() {
 
   // 현재 연속 저금 streak 계산 (history는 내림차순)
   const historyAscForStreak = [...history].sort((a, b) => a.week - b.week);
+  // 히스토리 테이블용 streak 그룹 정보
+  const streakInfo = computeStreakInfo(historyAscForStreak);
   let currentStreak = 0;
   for (let i = historyAscForStreak.length - 1; i >= 0; i--) {
     if (historyAscForStreak[i].saving > 0) currentStreak++;
@@ -322,10 +348,91 @@ export default function App() {
     );
   }
 
+  // 축하/아쉬움 오버레이 자동 닫힘
+  useEffect(() => {
+    if (!celebrationData) return;
+    const timeout = celebrationData.type === 'bonus' ? 4500 : 3500;
+    const timer = setTimeout(() => setCelebrationData(null), timeout);
+    return () => clearTimeout(timer);
+  }, [celebrationData]);
+
   // --- 메인 화면 ---
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans pb-20">
       
+      {/* 축하/아쉬움 애니메이션 오버레이 */}
+      {celebrationData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm anim-fade-in cursor-pointer"
+          style={{ background: celebrationData.type === 'bonus' ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.55)' }}
+          onClick={() => setCelebrationData(null)}
+        >
+          {celebrationData.type === 'bonus' && (
+            <div className="relative flex flex-col items-center text-center">
+              {/* 파티클 */}
+              {['🎉','🌟','💫','✨','🎊','⭐','🌟','💫','🎉'].map((emoji, i) => (
+                <span
+                  key={i}
+                  className="absolute text-2xl anim-float-up pointer-events-none select-none"
+                  style={{
+                    left: `${-120 + i * 30}px`,
+                    bottom: '60px',
+                    animationDelay: `${i * 0.12}s`,
+                    animationDuration: `${1.2 + (i % 3) * 0.3}s`,
+                  }}
+                >{emoji}</span>
+              ))}
+              {/* 카드 */}
+              <div className="anim-pop-in bg-white rounded-3xl px-10 py-10 shadow-2xl max-w-sm w-full flex flex-col items-center">
+                <div className="text-6xl mb-3">🎉</div>
+                <h2 className="text-2xl font-black text-slate-800 mb-1">
+                  🔥 {celebrationData.streakCount}주 연속 저금 달성!
+                </h2>
+                <p className="text-slate-500 text-sm mb-6">3주 연속 성공으로 저금통 ×2 보너스 발동!</p>
+                <div className="bg-orange-50 rounded-2xl px-8 py-5 w-full text-center anim-pulse-glow">
+                  <p className="text-sm text-orange-500 font-bold mb-1">저금통에 추가된 금액</p>
+                  <p className="text-4xl font-black text-orange-600">+{celebrationData.saving.toLocaleString()}원</p>
+                  <p className="text-xs text-orange-400 mt-1">보너스 {celebrationData.bonus.toLocaleString()}원 포함 🐷</p>
+                </div>
+                <p className="text-xs text-slate-400 mt-5">화면을 탭하면 닫힙니다</p>
+              </div>
+            </div>
+          )}
+
+          {celebrationData.type === 'broke' && (
+            <div className="relative flex flex-col items-center text-center">
+              {/* 코인 떨어지기 파티클 */}
+              {['💸','💸','💸','💸','💸'].map((emoji, i) => (
+                <span
+                  key={i}
+                  className="absolute text-2xl anim-coin-fall pointer-events-none select-none"
+                  style={{
+                    left: `${-80 + i * 40}px`,
+                    top: '-10px',
+                    animationDelay: `${i * 0.18}s`,
+                    animationDuration: `${1 + (i % 2) * 0.3}s`,
+                  }}
+                >{emoji}</span>
+              ))}
+              {/* 카드 */}
+              <div className="anim-droop-in bg-white rounded-3xl px-10 py-10 shadow-2xl max-w-sm w-full flex flex-col items-center">
+                <div className="text-6xl mb-3">😢</div>
+                <h2 className="text-2xl font-black text-slate-700 mb-2">이번 주는 아쉽지만...</h2>
+                <p className="text-slate-400 text-sm mb-6">용돈을 모두 사용했어요. 연속 저금이 초기화됩니다.</p>
+                <div
+                  className="bg-blue-50 rounded-2xl px-8 py-5 w-full text-center anim-slide-up"
+                  style={{ animationDelay: '1.2s', opacity: 0, animationFillMode: 'forwards' }}
+                >
+                  <p className="text-2xl font-black text-blue-600">다음 주에 다시 도전! 💪</p>
+                  <p className="text-sm text-blue-400 mt-1">조금만 남겨도 연속 저금 시작!</p>
+                </div>
+                <p className="text-xs text-slate-400 mt-5">화면을 탭하면 닫힙니다</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {alertData && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl flex flex-col items-center text-center">
@@ -556,13 +663,26 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {history.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                  {history.map((record) => {
+                    const si = streakInfo[record.id] || { position: 0, consecutive: 0 };
+                    const isStreak = si.position > 0;
+                    const isBonus = si.position === 3;
+                    const streakLabel = isBonus
+                      ? <span className="ml-1.5 text-xs font-black text-orange-600">🔥3/3 달성!</span>
+                      : si.position === 2
+                      ? <span className="ml-1.5 text-xs font-bold text-orange-400">🔥2/3</span>
+                      : si.position === 1
+                      ? <span className="ml-1.5 text-xs font-medium text-slate-400">🔥1/3</span>
+                      : null;
+
+                    return (
+                    <tr key={record.id} className={`transition-colors ${isStreak ? 'bg-orange-50/40 hover:bg-orange-50/70 border-l-4 border-orange-300' : 'hover:bg-slate-50'}`}>
                       <td className="px-6 py-4 font-bold text-slate-700">
                         <span className="inline-flex items-center space-x-1 bg-slate-100 text-slate-600 px-2 py-1 rounded">
                           <PlusCircle size={14} /> <span>{record.week}주차</span>
                           <span className="text-xs text-slate-400 font-normal">({getWeekDate(record.week)})</span>
                         </span>
+                        {streakLabel}
                       </td>
                       <td className="px-6 py-4 text-right text-slate-700 font-bold">
                         {record.availableMoney ? record.availableMoney.toLocaleString() : ALLOWANCE_BASE.toLocaleString()}원
@@ -585,7 +705,8 @@ export default function App() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
