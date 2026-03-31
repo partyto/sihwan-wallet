@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "keywords": [],
-  "homepage": "https://partyto.github.io/sihwan-wallet",
   "main": "src/index.tsx",
   "dependencies": {
     "ajv": "^8.18.0",
@@ -28,8 +27,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "predeploy": "npm run build"
   },
   "browserslist": [
     ">0.2%",
