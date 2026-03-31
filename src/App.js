@@ -85,6 +85,14 @@ export default function App() {
   const [editState, setEditState] = useState(null);
   const [celebrationData, setCelebrationData] = useState(null);
 
+  // 축하/아쉬움 오버레이 자동 닫힘 (조건부 return 전에 위치해야 함 - Rules of Hooks)
+  useEffect(() => {
+    if (!celebrationData) return;
+    const timeout = celebrationData.type === 'bonus' ? 4500 : 3500;
+    const timer = setTimeout(() => setCelebrationData(null), timeout);
+    return () => clearTimeout(timer);
+  }, [celebrationData]);
+
   // 구글 로그인 처리 및 이메일 검사
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -347,14 +355,6 @@ export default function App() {
       </div>
     );
   }
-
-  // 축하/아쉬움 오버레이 자동 닫힘
-  useEffect(() => {
-    if (!celebrationData) return;
-    const timeout = celebrationData.type === 'bonus' ? 4500 : 3500;
-    const timer = setTimeout(() => setCelebrationData(null), timeout);
-    return () => clearTimeout(timer);
-  }, [celebrationData]);
 
   // --- 메인 화면 ---
   return (
