@@ -689,14 +689,15 @@ export default function App() {
                       </td>
                       <td className="px-6 py-4 text-right text-red-400 font-medium">-{record.spent.toLocaleString()}원</td>
                       <td className="px-6 py-4 text-right text-teal-600 font-bold bg-teal-50/30">{record.halfRemaining.toLocaleString()}원</td>
-                      <td className="px-6 py-4 text-right font-black text-lg bg-amber-50/30">
+                      <td className="px-6 py-4 text-right bg-amber-50/30">
                         {(record.bonus || 0) > 0 ? (
-                          <span className="text-orange-600">
-                            +{record.saving.toLocaleString()}
-                            <span className="ml-1 text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-bold align-middle">🔥×2</span>
-                          </span>
+                          <div className="flex flex-col items-end gap-0.5">
+                            <span className="text-sm text-amber-500 font-medium">이번주 +{(record.saving - record.bonus).toLocaleString()}원</span>
+                            <span className="text-sm text-orange-500 font-medium">🔥보너스 +{record.bonus.toLocaleString()}원</span>
+                            <span className="text-lg font-black text-orange-600 border-t border-orange-200 pt-0.5 mt-0.5">= +{record.saving.toLocaleString()}원</span>
+                          </div>
                         ) : (
-                          <span className="text-amber-500">+{record.saving.toLocaleString()}</span>
+                          <span className="text-amber-500 font-black text-lg">+{record.saving.toLocaleString()}</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-center">
